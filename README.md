@@ -56,7 +56,7 @@ CF_API_TOKEN=your-token node bin/fetch.mjs --zone example.com --days 7 --sitemap
 
 Useful options:
 
-- `--sitemap auto|<url>`: count only pages in your sitemap (recommended; see "What we exclude").
+- `--sitemap auto|<url>`: count only pages in your sitemap (recommended; see "What we exclude"). `auto` reads `/sitemap.xml` and every `Sitemap:` line in your robots.txt.
 - `--exclude-ip 203.0.113.7,...`: your own servers or office.
 - `--exclude-ua my-monitor`: a tag your own uptime checks or audit tools put in their user agent.
 - `--zone-id <id>`: skip the zone lookup (then the token needs only Analytics Read).

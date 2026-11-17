@@ -116,3 +116,10 @@ test('a user-asked bot reading one path once a day, every day, is flagged as clo
   assert.deepEqual(s.clockwork.map((c) => `${c.bot} ${c.path}`), ['Perplexity-User /']);
   assert.equal(s.totals.userClockwork, 7);
 });
+
+test('real blog slugs that mention scanner words are not probes', () => {
+  for (const p of ['/blog/debugging-x', '/blog/docker-compose-guide', '/blog/managing-api-credentials', '/blog/backups-for-teams', '/blog/github-actions-tips', '/guides/environment-variables'])
+    assert.equal(isProbePath(p), false, p);
+  for (const p of ['/.env', '/.env.local', '/.git/config', '/docker-compose.yml', '/backup.sql', '/backups/', '/debug/pprof/heap', '/railway.toml', '/proc/self/environ', '/Dockerfile', '/credentials.json'])
+    assert.equal(isProbePath(p), true, p);
+});
