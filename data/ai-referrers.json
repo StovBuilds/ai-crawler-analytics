@@ -1,0 +1,15 @@
+{
+  "_readme": "Where a click from an AI assistant comes from. `hosts` are matched against the Referer host (exact or subdomain). `utm` are utm_source values some assistants append to links, which survive when the browser strips the referrer. One click can carry both: count it once.",
+  "updated": "2026-11-17",
+  "referrers": [
+    { "name": "ChatGPT", "hosts": ["chatgpt.com", "chat.openai.com"], "utm": ["chatgpt.com"] },
+    { "name": "Perplexity", "hosts": ["perplexity.ai"], "utm": ["perplexity", "perplexity.ai"] },
+    { "name": "Claude", "hosts": ["claude.ai"], "utm": ["claude.ai"] },
+    { "name": "Gemini", "hosts": ["gemini.google.com", "bard.google.com"], "utm": ["gemini"] },
+    { "name": "Copilot", "hosts": ["copilot.microsoft.com"], "utm": ["copilot.com", "copilot"] },
+    { "name": "DeepSeek", "hosts": ["chat.deepseek.com"], "utm": [] },
+    { "name": "Mistral Le Chat", "hosts": ["chat.mistral.ai"], "utm": [] },
+    { "name": "Meta AI", "hosts": ["meta.ai"], "utm": [] },
+    { "name": "You.com", "hosts": ["you.com"], "utm": [] }
+  ]
+}

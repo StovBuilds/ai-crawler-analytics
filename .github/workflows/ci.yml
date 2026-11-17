@@ -1,0 +1,15 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm test
+      - name: Worker bundles
+        run: |
+          cd worker
+          sed -e 's/<your KV namespace id>/00000000000000000000000000000000/' -e 's/<your zone id>/test/' wrangler.toml.example > wrangler.toml
+          npx --yes wrangler@4 deploy --dry-run --outdir /tmp/wb

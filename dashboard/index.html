@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI crawler analytics</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --ink: #1b1b1f; --muted: #6b6b75; --line: #e4e4e0;
+    --training: #9aa5b8; --retrieval: #3d7cc9; --user: #d9822b; --ref: #2e9e6a; --warn: #b4521e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111214; --card: #1a1b1f; --ink: #ececf0; --muted: #9a9aa6; --line: #2b2c31;
+      --training: #6f7a8c; --retrieval: #5b9be6; --user: #f0a050; --ref: #4cc28c; --warn: #f08a5d; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-top: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .tile .k { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .tile .v { font-size: 28px; font-weight: 650; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .tile .d { font-size: 12px; color: var(--muted); }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .up { color: var(--ref); } .down { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+  .flag { border-left: 3px solid var(--warn); padding: 8px 12px; background: color-mix(in srgb, var(--warn) 8%, transparent); border-radius: 6px; margin-top: 12px; font-size: 14px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .note { font-size: 12px; color: var(--muted); }
+  #loader textarea { width: 100%; min-height: 120px; font: 12px ui-monospace, monospace; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+  button { font: inherit; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  .bar:hover { opacity: .8; }
+  code { font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <div id="loader" class="card" hidden>
+    <h2>Load your data</h2>
+    <p class="sub">Run <code>node bin/fetch.mjs --zone example.com</code> (writes <code>data.json</code> next to this page), drop the file here, or paste its contents.</p>
+    <input type="file" id="file" accept="application/json,.json">
+    <textarea id="paste" placeholder="…or paste data.json here"></textarea>
+    <p><button id="go">Show dashboard</button></p>
+  </div>
+  <div id="app" hidden></div>
+</main>
+<script>
+const TIERS = [
+  { key: 'training', label: 'Training', color: 'var(--training)', blurb: 'Copied into a training corpus. Never produces a receipt.' },
+  { key: 'retrieval', label: 'Retrieval', color: 'var(--retrieval)', blurb: 'Builds the index AI answer engines search. What makes citation possible.' },
+  { key: 'user', label: 'User-asked', color: 'var(--user)', blurb: 'Fetched because a person asked an assistant something just now.' },
+];
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (n) => Number(n || 0).toLocaleString();
+
+function delta(cur, prev) {
+  if (prev == null) return '<span class="d">no prior period to compare</span>';
+  if (!prev) return cur ? '<span class="d">new vs prior period</span>' : '<span class="d">none in either period</span>';
+  const p = Math.round(((cur - prev) / prev) * 100);
+  return `<span class="d ${p >= 0 ? 'up' : 'down'}">${p >= 0 ? '+' : ''}${p}%</span> <span class="d">vs prior ${fmt(prev)}</span>`;
+}
+
+function chart(daily) {
+  const W = 960, H = 220, pad = { l: 40, r: 8, t: 10, b: 26 };
+  const max = Math.max(1, ...daily.map((d) => TIERS.reduce((s, t) => s + d.tiers[t.key], 0)));
+  const step = (W - pad.l - pad.r) / daily.length, bw = Math.max(4, step * 0.68);
+  const y = (v) => pad.t + (H - pad.t - pad.b) * (1 - v / max);
+  let out = '';
+  for (const f of [0, 0.5, 1]) out += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y(max * f)}" y2="${y(max * f)}" stroke="var(--line)"/><text x="${pad.l - 6}" y="${y(max * f) + 4}" text-anchor="end">${fmt(Math.round(max * f))}</text>`;
+  daily.forEach((d, i) => {
+    const x = pad.l + i * step + (step - bw) / 2;
+    let acc = 0;
+    for (const t of TIERS) {
+      const v = d.tiers[t.key];
+      if (v) out += `<rect class="bar" x="${x}" y="${y(acc + v)}" width="${bw}" height="${y(acc) - y(acc + v)}" fill="${t.color}" rx="2"><title>${d.date} · ${t.label}: ${fmt(v)}</title></rect>`;
+      acc += v;
+    }
+    if (d.missing) out += `<text x="${x + bw / 2}" y="${H - pad.b - 4}" text-anchor="middle">n/a</text>`;
+    if (daily.length <= 31 && (daily.length <= 14 || i % 2 === 0)) out += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${d.date.slice(5)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="AI crawler reads per day by intent">${out}</svg>`;
+}
+
+function render(d) {
+  const t = d.totals, p = d.priorTotals;
+  const refMeasured = d.referralsSource !== 'unavailable';
+  const flags = [];
+  if (t.training > 0 && t.retrieval === 0) flags.push('Training crawlers read this site but no retrieval crawler did. You are feeding training corpora while absent from the indexes AI answers are drawn from. Check robots.txt allows OAI-SearchBot, Claude-SearchBot and PerplexityBot, and that Cloudflare\'s "Block AI bots" setting is off.');
+  const reads = t.training + t.retrieval + t.user;
+  if (reads && t.blocked / reads > 0.1) flags.push(`${Math.round((t.blocked / reads) * 100)}% of AI crawler requests were refused (401/403/429). If that is not deliberate, check Security → Bots in Cloudflare and your WAF rules.`);
+  if (d.daily.some((x) => x.truncated)) flags.push('Some days hit the 10,000-row query limit, so totals for those days are a floor.');
+  if (d.daily.some((x) => x.missing)) flags.push('Some days have no data (older than Cloudflare keeps, or not collected yet).');
+
+  const extra = (k) => k === 'user' && (t.userClockwork || t.userAgentTools) ? `<div class="note" style="margin-top:4px">incl. ${fmt(t.userClockwork || 0)} from clockwork readers${t.userAgentTools ? `, ${fmt(t.userAgentTools)} from coding agents` : ''} (see below)</div>` : '';
+  const tiles = TIERS.map((x) => `<div class="tile"><div class="k"><span class="dot" style="background:${x.color}"></span>${x.label}</div><div class="v">${fmt(t[x.key])}</div>${delta(t[x.key], p?.[x.key])}${extra(x.key)}<div class="note" style="margin-top:6px">${x.blurb}</div></div>`).join('')
+    + `<div class="tile"><div class="k"><span class="dot" style="background:var(--ref)"></span>AI referrals clicked</div>${refMeasured ? `<div class="v">${fmt(t.referrals)}</div>${delta(t.referrals, p?.referrals)}` : '<div class="v">–</div><span class="d">not measured</span>'}<div class="note" style="margin-top:6px">${refMeasured ? 'People who clicked through from an AI answer: the only number here that is certainly people. A floor, not a total.' : 'The only sure-human AI number. Cloudflare Free has no referrer data: add dashboard/referral.js to count these.'}</div></div>`;
+
+  const bots = d.bots.map((b) => `<tr><td>${esc(b.name)}</td><td>${esc(b.vendor)}</td><td>${esc(TIERS.find((x) => x.key === b.tier)?.label ?? b.tier)}</td><td class="n">${fmt(b.count)}</td><td class="n">${b.count ? Math.round((b.verified / b.count) * 100) + '%' : '–'}</td><td class="n">${fmt(b.blocked)}</td></tr>`).join('') || '<tr><td colspan="6" class="note">No AI crawler reads in this window.</td></tr>';
+  const clock = (d.clockwork || []).map((c) => `<tr><td>${esc(c.bot)}</td><td><code>${esc(c.path)}</code></td><td class="n">${c.days} of ${d.window.days}</td><td class="n">${fmt(c.reads)}</td></tr>`).join('');
+  const paths = (d.topUserAskedPaths || []).map((x) => `<tr><td><code>${esc(x.path)}</code></td><td class="n">${fmt(x.count)}</td></tr>`).join('') || '<tr><td colspan="2" class="note">None yet.</td></tr>';
+
+  document.getElementById('app').innerHTML = `
+    ${d.example ? '<div class="flag" style="margin:0 0 12px">Example data, made up for illustration. Run bin/fetch.mjs to see your own.</div>' : ''}
+    <h1>AI crawlers${d.site ? ' · ' + esc(d.site) : ''}</h1>
+    <div class="sub">${esc(d.window.from)} to ${esc(d.window.to)} (${d.window.days} days, UTC) · generated ${esc(new Date(d.generated).toLocaleString())}</div>
+    <div class="tiles">${tiles}</div>
+    ${flags.map((f) => `<div class="flag">${esc(f)}</div>`).join('')}
+    <div class="card"><h2>Reads per day, by why the bot came</h2>${chart(d.daily)}
+      <div class="legend">${TIERS.map((x) => `<span><span class="dot" style="background:${x.color}"></span>${x.label}</span>`).join('')}</div></div>
+    <div class="card"><h2>Bots</h2><div class="scroll"><table><thead><tr><th>Bot</th><th>Vendor</th><th>Tier</th><th class="n">Reads</th><th class="n">Verified by Cloudflare</th><th class="n">Refused</th></tr></thead><tbody>${bots}</tbody></table></div>
+      <p class="note">Rows marked "via Claude Code / Codex / Cursor" are coding agents fetching as a user-asked bot: a person is behind them, but often it is your own team. "Refused" counts 401/403/429 responses; those reads are not in the totals. "Verified" means Cloudflare confirmed the request came from that vendor's published IP ranges. Some genuine bots are not on Cloudflare's verified list, so a low share is not proof of spoofing; a high share is good evidence the reads are real.</p></div>
+    ${clock ? `<div class="card"><h2>Clockwork readers</h2><p class="note">User-asked bots that fetched the same page on almost every day, once or twice a day. That pattern is a scheduled monitor or an agent on a timer, not people asking questions, so treat these reads as noise.</p><div class="scroll"><table><thead><tr><th>Bot</th><th>Path</th><th class="n">Days seen</th><th class="n">Reads</th></tr></thead><tbody>${clock}</tbody></table></div></div>` : ''}
+    <div class="card"><h2>Pages people asked AI about</h2><p class="note">Paths fetched by user-asked bots (ChatGPT-User, Claude-User, Perplexity-User…): each read means someone's question needed that page.</p><div class="scroll"><table><thead><tr><th>Path</th><th class="n">Reads</th></tr></thead><tbody>${paths}</tbody></table></div></div>
+    <div class="card"><h2>What these numbers leave out</h2>
+      <ul class="note" style="padding-left:18px;margin:0">
+        <li><b>${fmt(t.probePaths)}</b> requests from scanners wearing AI-crawler user agents (paths like <code>/.env</code>, <code>/.git</code>, <code>/wp-login.php</code>) are excluded.</li>
+        <li><b>${fmt(t.notAPage)}</b> requests that got a 404 or an error are excluded: only pages that were actually served count.</li>
+        ${d.sitemapFiltered ? `<li><b>${fmt(t.offSitemap)}</b> requests for paths not in your sitemap are excluded.</li>` : '<li>No sitemap filter was used; pass <code>--sitemap auto</code> to count only your real pages.</li>'}
+        <li><b>${fmt(t.blocked)}</b> requests your site refused (401/403/429) are shown per bot, not counted as reads.</li>
+        <li><b>${fmt(t.ownTraffic)}</b> requests from your own monitors / IPs you listed are excluded.</li>
+        <li>Humans, search engines, SEO tools and other bots are not counted here at all.</li>
+        <li>Counts are Cloudflare's sampled estimates: read small numbers as present / absent, not exact volume.</li>
+        <li>Google-Extended and Applebot-Extended are robots.txt switches, not crawlers; their reads arrive as Googlebot / Applebot and cannot be separated.</li>
+        <li>A bot missing from this list is not proof it is blocked, and a training read never tells you whether a model used the page.</li>
+      </ul></div>`;
+  document.getElementById('app').hidden = false;
+  document.getElementById('loader').hidden = true;
+}
+
+function load(text) {
+  try { const d = JSON.parse(text); if (!d.totals || !d.daily) throw new Error('not an ai-crawler-analytics data file'); render(d); }
+  catch (e) { alert('Could not read that file: ' + e.message); }
+}
+
+(async () => {
+  const q = new URLSearchParams(location.search);
+  const tries = q.has('demo') ? ['example-data.json'] : [`api/data?days=${encodeURIComponent(q.get('days') || 7)}${q.get('key') ? '&key=' + encodeURIComponent(q.get('key')) : ''}`, 'data.json'];
+  for (const u of tries) {
+    try { const r = await fetch(u, { cache: 'no-store' }); if (r.ok) { render(await r.json()); return; } } catch {}
+  }
+  document.getElementById('loader').hidden = false;
+  document.getElementById('file').onchange = (e) => e.target.files[0]?.text().then(load);
+  document.getElementById('go').onclick = () => load(document.getElementById('paste').value);
+  document.body.ondragover = (e) => e.preventDefault();
+  document.body.ondrop = (e) => { e.preventDefault(); e.dataTransfer.files[0]?.text().then(load); };
+})();
+</script>
+</body>
+</html>

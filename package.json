@@ -1,0 +1,15 @@
+{
+  "name": "ai-crawler-analytics",
+  "version": "0.1.0",
+  "description": "See which AI crawlers read your site, and why: training, retrieval or a person asking right now. Cloudflare analytics, a static dashboard and a Claude skill.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "bin": { "ai-crawler-analytics": "bin/fetch.mjs" },
+  "scripts": {
+    "fetch": "node bin/fetch.mjs",
+    "test": "node --test test/*.test.mjs",
+    "dashboard": "node -e \"require('http').createServer((q,r)=>{const f=require('path').join('dashboard',decodeURIComponent(q.url.split('?')[0])==='/'?'index.html':decodeURIComponent(q.url.split('?')[0]));require('fs').readFile(f,(e,b)=>{r.writeHead(e?404:200,{'content-type':f.endsWith('.json')?'application/json':'text/html'});r.end(e?'not found':b)})}).listen(8787,()=>console.log('http://localhost:8787'))\""
+  },
+  "keywords": ["cloudflare", "ai crawlers", "gptbot", "claudebot", "analytics", "llm", "seo", "geo"]
+}

@@ -1,0 +1,355 @@
+{
+ "schema": "ai-crawler-analytics/1",
+ "site": "example.com",
+ "generated": "2026-01-15T08:00:00.000Z",
+ "example": true,
+ "window": {
+  "days": 7,
+  "from": "2026-01-08",
+  "to": "2026-01-14"
+ },
+ "referralsSource": "tracker",
+ "totals": {
+  "training": 843,
+  "retrieval": 731,
+  "user": 236,
+  "verified": 1016,
+  "blocked": 28,
+  "referrals": 52,
+  "probePaths": 232,
+  "ownTraffic": 25
+ },
+ "priorTotals": {
+  "training": 1072,
+  "retrieval": 792,
+  "user": 237,
+  "verified": 1216,
+  "blocked": 28,
+  "referrals": 49,
+  "probePaths": 208,
+  "ownTraffic": 31
+ },
+ "daily": [
+  {
+   "date": "2026-01-08",
+   "totalRequests": 11658,
+   "tiers": {
+    "training": 89,
+    "retrieval": 93,
+    "user": 29
+   },
+   "verified": {
+    "training": 71,
+    "retrieval": 28,
+    "user": 15
+   },
+   "status": {
+    "ok": 205,
+    "blocked": 4,
+    "notFound": 2,
+    "other": 0
+   },
+   "excluded": {
+    "probePaths": 38,
+    "ownTraffic": 4
+   },
+   "referrals": 3,
+   "missing": false,
+   "truncated": false
+  },
+  {
+   "date": "2026-01-09",
+   "totalRequests": 10696,
+   "tiers": {
+    "training": 145,
+    "retrieval": 86,
+    "user": 30
+   },
+   "verified": {
+    "training": 116,
+    "retrieval": 26,
+    "user": 15
+   },
+   "status": {
+    "ok": 255,
+    "blocked": 4,
+    "notFound": 2,
+    "other": 0
+   },
+   "excluded": {
+    "probePaths": 20,
+    "ownTraffic": 4
+   },
+   "referrals": 8,
+   "missing": false,
+   "truncated": false
+  },
+  {
+   "date": "2026-01-10",
+   "totalRequests": 12452,
+   "tiers": {
+    "training": 117,
+    "retrieval": 142,
+    "user": 33
+   },
+   "verified": {
+    "training": 94,
+    "retrieval": 43,
+    "user": 17
+   },
+   "status": {
+    "ok": 286,
+    "blocked": 4,
+    "notFound": 2,
+    "other": 0
+   },
+   "excluded": {
+    "probePaths": 29,
+    "ownTraffic": 5
+   },
+   "referrals": 7,
+   "missing": false,
+   "truncated": false
+  },
+  {
+   "date": "2026-01-11",
+   "totalRequests": 10587,
+   "tiers": {
+    "training": 161,
+    "retrieval": 122,
+    "user": 53
+   },
+   "verified": {
+    "training": 129,
+    "retrieval": 37,
+    "user": 27
+   },
+   "status": {
+    "ok": 330,
+    "blocked": 4,
+    "notFound": 2,
+    "other": 0
+   },
+   "excluded": {
+    "probePaths": 31,
+    "ownTraffic": 2
+   },
+   "referrals": 7,
+   "missing": false,
+   "truncated": false
+  },
+  {
+   "date": "2026-01-12",
+   "totalRequests": 12179,
+   "tiers": {
+    "training": 136,
+    "retrieval": 90,
+    "user": 31
+   },
+   "verified": {
+    "training": 109,
+    "retrieval": 27,
+    "user": 16
+   },
+   "status": {
+    "ok": 251,
+    "blocked": 4,
+    "notFound": 2,
+    "other": 0
+   },
+   "excluded": {
+    "probePaths": 36,
+    "ownTraffic": 1
+   },
+   "referrals": 9,
+   "missing": false,
+   "truncated": false
+  },
+  {
+   "date": "2026-01-13",
+   "totalRequests": 9312,
+   "tiers": {
+    "training": 92,
+    "retrieval": 97,
+    "user": 21
+   },
+   "verified": {
+    "training": 74,
+    "retrieval": 29,
+    "user": 11
+   },
+   "status": {
+    "ok": 204,
+    "blocked": 4,
+    "notFound": 2,
+    "other": 0
+   },
+   "excluded": {
+    "probePaths": 40,
+    "ownTraffic": 2
+   },
+   "referrals": 8,
+   "missing": false,
+   "truncated": false
+  },
+  {
+   "date": "2026-01-14",
+   "totalRequests": 9551,
+   "tiers": {
+    "training": 103,
+    "retrieval": 101,
+    "user": 39
+   },
+   "verified": {
+    "training": 82,
+    "retrieval": 30,
+    "user": 20
+   },
+   "status": {
+    "ok": 237,
+    "blocked": 4,
+    "notFound": 2,
+    "other": 0
+   },
+   "excluded": {
+    "probePaths": 38,
+    "ownTraffic": 7
+   },
+   "referrals": 10,
+   "missing": false,
+   "truncated": false
+  }
+ ],
+ "bots": [
+  {
+   "name": "GPTBot",
+   "vendor": "OpenAI",
+   "tier": "training",
+   "count": 295,
+   "verified": 266,
+   "blocked": 3
+  },
+  {
+   "name": "OAI-SearchBot",
+   "vendor": "OpenAI",
+   "tier": "retrieval",
+   "count": 292,
+   "verified": 58,
+   "blocked": 3
+  },
+  {
+   "name": "PerplexityBot",
+   "vendor": "Perplexity",
+   "tier": "retrieval",
+   "count": 256,
+   "verified": 0,
+   "blocked": 3
+  },
+  {
+   "name": "ClaudeBot",
+   "vendor": "Anthropic",
+   "tier": "training",
+   "count": 253,
+   "verified": 240,
+   "blocked": 3
+  },
+  {
+   "name": "Claude-SearchBot",
+   "vendor": "Anthropic",
+   "tier": "retrieval",
+   "count": 183,
+   "verified": 0,
+   "blocked": 2
+  },
+  {
+   "name": "ChatGPT-User",
+   "vendor": "OpenAI",
+   "tier": "user",
+   "count": 130,
+   "verified": 111,
+   "blocked": 1
+  },
+  {
+   "name": "meta-externalagent",
+   "vendor": "Meta",
+   "tier": "training",
+   "count": 126,
+   "verified": 126,
+   "blocked": 1
+  },
+  {
+   "name": "CCBot",
+   "vendor": "Common Crawl",
+   "tier": "training",
+   "count": 101,
+   "verified": 0,
+   "blocked": 1
+  },
+  {
+   "name": "Bytespider",
+   "vendor": "ByteDance",
+   "tier": "training",
+   "count": 67,
+   "verified": 0,
+   "blocked": 1
+  },
+  {
+   "name": "Claude-User",
+   "vendor": "Anthropic",
+   "tier": "user",
+   "count": 47,
+   "verified": 0,
+   "blocked": 0
+  },
+  {
+   "name": "Perplexity-User",
+   "vendor": "Perplexity",
+   "tier": "user",
+   "count": 35,
+   "verified": 0,
+   "blocked": 0
+  },
+  {
+   "name": "DuckAssistBot",
+   "vendor": "DuckDuckGo",
+   "tier": "user",
+   "count": 24,
+   "verified": 7,
+   "blocked": 0
+  }
+ ],
+ "topUserAskedPaths": [
+  {
+   "path": "/pricing",
+   "count": 52
+  },
+  {
+   "path": "/docs/getting-started",
+   "count": 26
+  },
+  {
+   "path": "/blog/how-we-cut-onboarding-time",
+   "count": 17
+  },
+  {
+   "path": "/",
+   "count": 13
+  },
+  {
+   "path": "/docs/api",
+   "count": 10
+  },
+  {
+   "path": "/compare/alternatives",
+   "count": 9
+  },
+  {
+   "path": "/blog/year-in-review",
+   "count": 7
+  },
+  {
+   "path": "/about",
+   "count": 6
+  }
+ ]
+}

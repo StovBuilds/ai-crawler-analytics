@@ -1,0 +1,38 @@
+{
+  "_readme": "AI crawler user agents and what each one is doing. `match` is a case-insensitive substring of the User-Agent header. Order matters: more specific tokens (Claude-SearchBot, Claude-User) come before the vendor's training crawler. `tier`: training = copies pages into a training corpus (never produces a receipt); retrieval = builds the search index an AI answer engine looks things up in; user = fetched because a person asked an assistant something right now. Edit freely; send a PR when a vendor adds or renames a bot.",
+  "updated": "2026-11-17",
+  "crawlers": [
+    { "name": "ChatGPT-User", "vendor": "OpenAI", "tier": "user", "match": "ChatGPT-User", "robots": "ChatGPT-User", "source": "https://platform.openai.com/docs/bots" },
+    { "name": "OAI-SearchBot", "vendor": "OpenAI", "tier": "retrieval", "match": "OAI-SearchBot", "robots": "OAI-SearchBot", "source": "https://platform.openai.com/docs/bots" },
+    { "name": "GPTBot", "vendor": "OpenAI", "tier": "training", "match": "GPTBot", "robots": "GPTBot", "source": "https://platform.openai.com/docs/bots" },
+
+    { "name": "Claude-User", "vendor": "Anthropic", "tier": "user", "match": "Claude-User", "robots": "Claude-User", "source": "https://support.anthropic.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler" },
+    { "name": "Claude-SearchBot", "vendor": "Anthropic", "tier": "retrieval", "match": "Claude-SearchBot", "robots": "Claude-SearchBot", "source": "https://support.anthropic.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler" },
+    { "name": "ClaudeBot", "vendor": "Anthropic", "tier": "training", "match": "ClaudeBot", "robots": "ClaudeBot", "source": "https://support.anthropic.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler" },
+    { "name": "anthropic-ai", "vendor": "Anthropic", "tier": "training", "match": "anthropic-ai", "robots": "anthropic-ai", "source": "Legacy token; still seen in some logs" },
+
+    { "name": "Perplexity-User", "vendor": "Perplexity", "tier": "user", "match": "Perplexity-User", "robots": "Perplexity-User", "source": "https://docs.perplexity.ai/guides/bots" },
+    { "name": "PerplexityBot", "vendor": "Perplexity", "tier": "retrieval", "match": "PerplexityBot", "robots": "PerplexityBot", "source": "https://docs.perplexity.ai/guides/bots" },
+
+    { "name": "MistralAI-User", "vendor": "Mistral", "tier": "user", "match": "MistralAI-User", "robots": "MistralAI-User", "source": "https://docs.mistral.ai/robots" },
+    { "name": "DuckAssistBot", "vendor": "DuckDuckGo", "tier": "user", "match": "DuckAssistBot", "robots": "DuckAssistBot", "source": "https://duckduckgo.com/duckduckgo-help-pages/results/duckassistbot" },
+    { "name": "Meta-ExternalFetcher", "vendor": "Meta", "tier": "user", "match": "meta-externalfetcher", "robots": "meta-externalfetcher", "source": "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers" },
+    { "name": "meta-externalagent", "vendor": "Meta", "tier": "training", "match": "meta-externalagent", "robots": "meta-externalagent", "source": "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers" },
+
+    { "name": "Amzn-SearchBot", "vendor": "Amazon", "tier": "retrieval", "match": "Amzn-SearchBot", "robots": "Amzn-SearchBot", "source": "https://developer.amazon.com/amazonbot" },
+    { "name": "Amazonbot", "vendor": "Amazon", "tier": "training", "match": "Amazonbot", "robots": "Amazonbot", "source": "https://developer.amazon.com/amazonbot" },
+    { "name": "YouBot", "vendor": "You.com", "tier": "retrieval", "match": "YouBot", "robots": "YouBot", "source": "https://about.you.com/youbot/" },
+
+    { "name": "CCBot", "vendor": "Common Crawl", "tier": "training", "match": "CCBot", "robots": "CCBot", "source": "https://commoncrawl.org/ccbot" },
+    { "name": "Bytespider", "vendor": "ByteDance", "tier": "training", "match": "Bytespider", "robots": "Bytespider", "source": "Widely documented; no official page" },
+    { "name": "cohere-ai", "vendor": "Cohere", "tier": "training", "match": "cohere-ai", "robots": "cohere-ai", "source": "Widely documented; no official page" },
+    { "name": "Diffbot", "vendor": "Diffbot", "tier": "training", "match": "Diffbot", "robots": "Diffbot", "source": "https://docs.diffbot.com/docs/getting-started-with-crawl" },
+    { "name": "AI2Bot", "vendor": "Allen Institute for AI", "tier": "training", "match": "AI2Bot", "robots": "AI2Bot", "source": "https://allenai.org/crawler" },
+    { "name": "Timpibot", "vendor": "Timpi", "tier": "training", "match": "Timpibot", "robots": "Timpibot", "source": "Widely documented; no official page" },
+    { "name": "omgili", "vendor": "Webz.io", "tier": "training", "match": "omgili", "robots": "omgili", "source": "https://webz.io/blog/web-data/what-is-the-omgili-bot-and-why-is-it-crawling-your-website/" }
+  ],
+  "robotsOnly": [
+    { "name": "Google-Extended", "vendor": "Google", "note": "A robots.txt token only. Google fetches with Googlebot, so these reads cannot be told apart from search crawling and never show up here.", "source": "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers" },
+    { "name": "Applebot-Extended", "vendor": "Apple", "note": "A robots.txt token only. Apple fetches with Applebot, so these reads never show up here.", "source": "https://support.apple.com/en-us/119829" }
+  ]
+}

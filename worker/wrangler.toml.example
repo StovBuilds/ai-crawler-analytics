@@ -1,0 +1,30 @@
+# Copy to wrangler.toml, fill in the values, then see README "Option B".
+name = "ai-crawler-analytics"
+main = "index.js"
+compatibility_date = "2025-09-01"
+
+# The dashboard is served as static assets; /api/data and /r go to the Worker.
+[assets]
+directory = "../dashboard"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/r"]
+
+[[kv_namespaces]]
+binding = "STORE"
+id = "<your KV namespace id>"   # npx wrangler kv namespace create STORE
+
+[triggers]
+crons = ["17 3 * * *"]   # once a day; it also fills any of the last 14 days it is missing
+
+[vars]
+ZONE_ID = "<your zone id>"     # Cloudflare dashboard > your domain > Overview, right-hand column
+ZONE_NAME = "example.com"
+SITEMAP_URL = "https://example.com/sitemap.xml"   # count only real pages; leave empty to skip
+EXCLUDE_IPS = ""                # your own server/office IPs, comma separated
+EXCLUDE_UA = ""                 # a tag your own uptime checks/probes put in their user agent
+# ALLOW_ORIGIN = "https://example.com"   # restrict who may send referral beacons
+# CF_REFERRER = "off"                    # skip the Referer query entirely (Free plan cannot use it)
+
+# Secrets (not in this file):
+#   npx wrangler secret put CF_API_TOKEN
+#   npx wrangler secret put DASH_KEY      # optional: dashboard then needs ?key=...
