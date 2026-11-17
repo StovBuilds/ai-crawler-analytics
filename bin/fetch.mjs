@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collect, zoneIdFor } from '../src/collect.js';
-import { sitemapPaths } from '../src/sitemap.js';
+import { sitemapPaths, declaredSitemaps } from '../src/sitemap.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = Object.fromEntries(
@@ -33,7 +33,7 @@ const referrers = JSON.parse(readFileSync(join(root, 'data/ai-referrers.json'), 
 const zoneId = args['zone-id'] ?? (await zoneIdFor(token, args.zone));
 let pagePaths = null;
 if (args.sitemap) {
-  const url = args.sitemap === 'auto' || args.sitemap === 'true' ? `https://${args.zone}/sitemap.xml` : args.sitemap;
+  const url = args.sitemap === 'auto' || args.sitemap === 'true' ? await declaredSitemaps(`https://${args.zone}`) : args.sitemap;
   pagePaths = await sitemapPaths(url, { log: (m) => process.stderr.write(m + '\n') });
   process.stderr.write(`sitemap: ${pagePaths.size} paths\n`);
   if (pagePaths.size <= 1) { process.stderr.write('sitemap gave no pages; counting without it\n'); pagePaths = null; }

@@ -1,9 +1,19 @@
 // Read a sitemap (or sitemap index) into a Set of normalised paths, for counting only real pages.
 import { normalisePath } from './collect.js';
 
+// Every sitemap a site declares: /sitemap.xml plus each robots.txt "Sitemap:" line.
+export async function declaredSitemaps(origin, { fetchImpl = fetch } = {}) {
+  const out = new Set([`${origin}/sitemap.xml`]);
+  try {
+    const r = await fetchImpl(`${origin}/robots.txt`, { headers: { 'user-agent': 'ai-crawler-analytics (sitemap read)' } });
+    if (r.ok) for (const m of (await r.text()).matchAll(/^\s*sitemap:\s*(\S+)/gim)) out.add(m[1]);
+  } catch {}
+  return [...out];
+}
+
 export async function sitemapPaths(url, { fetchImpl = fetch, maxFiles = 50, log = () => {} } = {}) {
   const paths = new Set(['/']);
-  const queue = [url];
+  const queue = Array.isArray(url) ? [...url] : [url];
   let files = 0;
   while (queue.length && files < maxFiles) {
     const u = queue.shift();

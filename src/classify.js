@@ -10,13 +10,13 @@
  */
 export const PROBE_PATH_RE = new RegExp(
   [
-    '\\.env', '@fs', '\\.git', 'wp-admin', 'wp-login', 'xmlrpc\\.php', '/vendor/', 'phpinfo',
-    '\\.aws', 'credentials', 'id_rsa', 'id_ed25519', '\\.ssh', '/config\\.json', '/backup',
+    '/\\.env', '@fs', '/\\.git(/|$|config|ignore|credentials)', 'wp-admin', 'wp-login', 'xmlrpc\\.php', '/vendor/', 'phpinfo',
+    '/\\.aws', '/credentials(\\.|/|$)', 'id_rsa', 'id_ed25519', '/\\.ssh', '/config\\.json', '/backups?(\\.[a-z0-9.]+|/|$)',
     '/fetch$', '/proxy$', '/graphql(/|$)', '/actuator(/|$)', '/cgi-bin/',
     'terraform\\.tf', '\\.terraform', 'application\\.yml', '\\.netrc', 'secrets\\.ya?ml', '\\.DS_Store', '/server-status',
-    '/env\\.js$', 'pprof', '/api/\\d+/config', 'litellm', 'jenkinsfile', 'docker-compose', '\\.(pem|key|sql|bak|old|swp)$',
+    '/env\\.js$', '/debug/pprof', '/api/\\d+/config', '/litellm', '/jenkinsfile$', '/docker-compose[^/]*\\.ya?ml$', '\\.(pem|key|sql|bak|old|swp)$',
     '/telescope/', '/_profiler', '/solr/', '/HNAP1', '/boaform',
-    '\\.toml$', '\\.ya?ml$', '/proc/', '/etc/passwd', '\\.(ini|conf|cfg|log|lock)$', '/\\.[a-z_-]+rc$', 'Dockerfile',
+    '\\.toml$', '\\.ya?ml$', '/proc/', '/etc/passwd', '\\.(ini|conf|cfg|log|lock)$', '/\\.[a-z_-]+rc$', '/dockerfile$',
   ].join('|'),
   'i',
 );
