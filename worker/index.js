@@ -7,13 +7,14 @@
 //   everything else    the static dashboard (wrangler `assets`)
 //
 // Secrets/vars: CF_API_TOKEN (secret, Zone > Analytics > Read), ZONE_ID, ZONE_NAME, SITEMAP_URL,
-// optional EXCLUDE_IPS / EXCLUDE_UA (comma lists), optional DASH_KEY, optional ALLOW_ORIGIN.
+// optional VERIFY_IPS=on (check reads against vendor IP ranges; stores verdict counts only), optional EXCLUDE_IPS / EXCLUDE_UA (comma lists), optional DASH_KEY, optional ALLOW_ORIGIN.
 
 import crawlerData from '../data/ai-crawlers.json';
 import referrerData from '../data/ai-referrers.json';
 import { collectDay, daysBack, summarise } from '../src/collect.js';
 import { matchReferrer } from '../src/classify.js';
 import { sitemapPaths } from '../src/sitemap.js';
+import { loadRanges } from '../src/verify.js';
 
 const list = (s) => String(s || '').split(',').map((x) => x.trim()).filter(Boolean);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -23,13 +24,15 @@ async function backfill(env) {
   if (env.SITEMAP_URL) {
     try { pagePaths = await sitemapPaths(env.SITEMAP_URL); if (pagePaths.size <= 1) pagePaths = null; } catch (e) { console.log(`sitemap failed: ${e.message}`); }
   }
+  let ipRanges = null;
+  if (env.VERIFY_IPS === 'on') ipRanges = await loadRanges({ log: (m) => console.log(m) });
   for (const date of daysBack(14)) {
     if (await env.STORE.get(`day:${date}`)) continue;
     try {
       const day = await collectDay({
         token: env.CF_API_TOKEN, zoneId: env.ZONE_ID, date,
         crawlers: crawlerData.crawlers, referrers: referrerData.referrers,
-        excludeIps: list(env.EXCLUDE_IPS), excludeUa: list(env.EXCLUDE_UA), pagePaths,
+        excludeIps: list(env.EXCLUDE_IPS), excludeUa: list(env.EXCLUDE_UA), pagePaths, ipRanges,
         tryReferrals: env.CF_REFERRER !== 'off',
       });
       await env.STORE.put(`day:${date}`, JSON.stringify(day), { expirationTtl: 400 * 86400 });

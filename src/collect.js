@@ -3,6 +3,7 @@
 // Cloudflare Worker. Read-only: the token needs Zone > Analytics > Read and nothing else.
 
 import { matchCrawler, isProbePath } from './classify.js';
+import { verdictFor } from './verify.js';
 
 const API = 'https://api.cloudflare.com/client/v4';
 export const TIERS = ['training', 'retrieval', 'user'];
@@ -31,12 +32,12 @@ export async function zoneIdFor(token, name, fetchImpl = fetch) {
   return j.result[0].id;
 }
 
-const AI_QUERY = `query ($zone: String!, $date: Date!, $or: [ZoneHttpRequestsAdaptiveGroupsFilter_InputObject!], $notIps: [string!]) {
+const aiQuery = (withIp) => `query ($zone: String!, $date: Date!, $or: [ZoneHttpRequestsAdaptiveGroupsFilter_InputObject!], $notIps: [string!]) {
   viewer { zones(filter: { zoneTag: $zone }) {
     total: httpRequestsAdaptiveGroups(limit: 1, filter: { date: $date }) { count }
     ai: httpRequestsAdaptiveGroups(limit: 10000, orderBy: [count_DESC],
         filter: { date: $date, requestSource: "eyeball", clientIP_notin: $notIps, OR: $or }) {
-      count dimensions { userAgent clientRequestPath verifiedBotCategory edgeResponseStatus }
+      count dimensions { userAgent clientRequestPath verifiedBotCategory edgeResponseStatus${withIp ? ' clientIP' : ''} }
     }
   } }
 }`;
@@ -93,6 +94,9 @@ export function normalisePath(p) {
  * Collect one day. Options:
  *   excludeIps  - your own server / office IPs (exact match), dropped in the query
  *   excludeUa   - substrings marking your own monitors (e.g. a tag you add to probe UAs)
+ *   ipRanges    - optional result of loadRanges() (src/verify.js). Adds the clientIP dimension (more
+ *                 rows per day) and checks each read against the vendor's published IP ranges. Only the
+ *                 verdict is kept (`ipVerdicts` per bot); the IP itself is never stored.
  *   pagePaths   - optional Set of your real page paths (e.g. from the sitemap). When given, reads of
  *                 anything else are excluded as `offSitemap` instead of counted.
  *
@@ -100,10 +104,10 @@ export function normalisePath(p) {
  * (401/403/429) are counted per bot as `blocked` but not as reads; 404s and errors are dropped as
  * `notAPage`. Scanners mostly ask for files that do not exist, so this is the strongest filter.
  */
-export async function collectDay({ token, zoneId, date, crawlers, referrers, excludeIps = [], excludeUa = [], pagePaths = null, fetchImpl = fetch, tryReferrals = true }) {
+export async function collectDay({ token, zoneId, date, crawlers, referrers, excludeIps = [], excludeUa = [], pagePaths = null, fetchImpl = fetch, tryReferrals = true, ipRanges = null }) {
   const day = emptyDay(date);
   const or = crawlers.map((c) => ({ userAgent_like: `%${c.match}%` }));
-  const d = await gql(token, AI_QUERY, { zone: zoneId, date, or, notIps: excludeIps.length ? excludeIps : ['0.0.0.0'] }, fetchImpl);
+  const d = await gql(token, aiQuery(!!ipRanges), { zone: zoneId, date, or, notIps: excludeIps.length ? excludeIps : ['0.0.0.0'] }, fetchImpl);
   const z = d.viewer.zones[0] ?? { total: [], ai: [] };
   day.totalRequests = z.total?.[0]?.count ?? 0;
   day.truncated = (z.ai?.length ?? 0) >= 10000;
@@ -129,6 +133,11 @@ export async function collectDay({ token, zoneId, date, crawlers, referrers, exc
     day.tiers[c.tier] += g.count;
     b.count += g.count;
     if (v) { day.verified[c.tier] += g.count; b.verified += g.count; }
+    if (ipRanges) {
+      const verdict = verdictFor(g.dimensions.clientIP, c.name, ipRanges);
+      const iv = (b.ipVerdicts ??= {});
+      iv[verdict] = (iv[verdict] ?? 0) + g.count;
+    }
     if (c.tier === 'user') {
       paths[path] = (paths[path] ?? 0) + g.count;
       userReads[`${name}\t${path}`] = (userReads[`${name}\t${path}`] ?? 0) + g.count;
@@ -160,14 +169,14 @@ export async function collectDay({ token, zoneId, date, crawlers, referrers, exc
  * Cloudflare keeps adaptive data for a limited time (about two weeks on Free); days it no longer
  * holds come back empty and are marked `missing`.
  */
-export async function collect({ token, zoneId, zoneName = '', days = 7, crawlers, referrers, excludeIps = [], excludeUa = [], pagePaths = null, fetchImpl = fetch, now = new Date(), log = () => {} }) {
+export async function collect({ token, zoneId, zoneName = '', days = 7, crawlers, referrers, excludeIps = [], excludeUa = [], pagePaths = null, fetchImpl = fetch, now = new Date(), log = () => {}, ipRanges = null }) {
   const dates = daysBack(days * 2, now);
   const out = [];
   let referralsAvailable = true;
   for (const date of dates) {
     log(`fetching ${date}`);
     try {
-      const day = await collectDay({ token, zoneId, date, crawlers, referrers, excludeIps, excludeUa, pagePaths, fetchImpl, tryReferrals: referralsAvailable });
+      const day = await collectDay({ token, zoneId, date, crawlers, referrers, excludeIps, excludeUa, pagePaths, fetchImpl, tryReferrals: referralsAvailable, ipRanges });
       if (day.referrals === null) referralsAvailable = false;
       out.push(day);
     } catch (e) {
@@ -219,6 +228,7 @@ export function summarise({ zoneName, days, data, referralsAvailable, referralTr
     for (const [name, b] of Object.entries(d.bots)) {
       const x = (bots[name] ??= { vendor: b.vendor, tier: b.tier, count: 0, verified: 0, blocked: 0, ...(b.agentTool ? { agentTool: b.agentTool } : {}) });
       x.count += b.count; x.verified += b.verified; x.blocked += b.blocked;
+      for (const [k, n] of Object.entries(b.ipVerdicts ?? {})) { x.ipVerdicts ??= {}; x.ipVerdicts[k] = (x.ipVerdicts[k] ?? 0) + n; }
     }
     for (const [p, n] of Object.entries(d.userPaths ?? {})) paths[p] = (paths[p] ?? 0) + n;
   }

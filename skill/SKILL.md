@@ -65,7 +65,7 @@ Write labels in plain words. Do not call training reads "visits" or imply anyone
 ## 4. Caveats to state every time
 
 - Cloudflare's adaptive analytics are sampled: small numbers mean present / absent, not exact volume.
-- User agents can be forged. "Verified by Cloudflare" is the check; not every genuine bot is on the list.
+- User agents can be forged. "Verified by Cloudflare" is the check; not every genuine bot is on the list. For a stronger check run the fetch with `--verify-ips`: each bot then has `ipVerdicts` (verified / unverified / no_ranges / no_ip / unknown) from the vendors' published IP ranges. A large `unverified` share on a user-asked bot means a scanner is wearing its user agent. See README "Spotting fake AI bots".
 - A bot not appearing is not proof it is blocked. Test with its real user agent.
 - Google-Extended and Applebot-Extended are robots.txt switches, not crawlers, so they never appear.
 - Cloudflare only keeps this data for a short time (about two weeks on Free); the Worker keeps history.
