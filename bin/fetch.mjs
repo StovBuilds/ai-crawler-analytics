@@ -2,6 +2,7 @@
 // Usage:
 //   CF_API_TOKEN=... node bin/fetch.mjs --zone example.com [--days 7] [--out dashboard/data.json]
 //                    [--zone-id <id>] [--exclude-ip 203.0.113.7,...] [--exclude-ua my-monitor-tag,...]
+//                    [--verify-ips]  check each read's IP against the vendors' published ranges (verdict only)
 //                    [--sitemap auto|<url>]  count only pages listed in your sitemap (recommended)
 // Writes the dashboard data file. Read-only against Cloudflare.
 
@@ -9,6 +10,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collect, zoneIdFor } from '../src/collect.js';
+import { loadRanges } from '../src/verify.js';
 import { sitemapPaths, declaredSitemaps } from '../src/sitemap.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -20,7 +22,7 @@ const args = Object.fromEntries(
 );
 
 if (args.help || (!args.zone && !args['zone-id'])) {
-  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 7).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'));
+  console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 8).map((l) => l.replace(/^\/\/ ?/, '')).join('\n'));
   process.exit(args.help ? 0 : 1);
 }
 const token = process.env.CF_API_TOKEN;
@@ -38,6 +40,7 @@ if (args.sitemap) {
   process.stderr.write(`sitemap: ${pagePaths.size} paths\n`);
   if (pagePaths.size <= 1) { process.stderr.write('sitemap gave no pages; counting without it\n'); pagePaths = null; }
 }
+const ipRanges = args['verify-ips'] ? await loadRanges({ log: (m) => process.stderr.write(m + '\n') }) : null;
 const data = await collect({
   token,
   zoneId,
@@ -48,6 +51,7 @@ const data = await collect({
   excludeIps: list(args['exclude-ip']),
   excludeUa: list(args['exclude-ua']),
   pagePaths,
+  ipRanges,
   log: (m) => process.stderr.write(m + '\n'),
 });
 const out = args.out ?? join(root, 'dashboard/data.json');

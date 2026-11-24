@@ -23,6 +23,7 @@ SITEMAP_URL = "https://example.com/sitemap.xml"   # count only real pages; leave
 EXCLUDE_IPS = ""                # your own server/office IPs, comma separated
 EXCLUDE_UA = ""                 # a tag your own uptime checks/probes put in their user agent
 # ALLOW_ORIGIN = "https://example.com"   # restrict who may send referral beacons
+# VERIFY_IPS = "on"                     # check each AI read's IP against the vendors' published ranges
 # CF_REFERRER = "off"                    # skip the Referer query entirely (Free plan cannot use it)
 
 # Secrets (not in this file):

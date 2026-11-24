@@ -30,6 +30,7 @@ The full list, with each vendor's documentation, is in [`data/ai-crawlers.json`]
 | `data/ai-crawlers.json` | User agent → bot → tier, with sources. Edit it or send a PR when vendors add bots. |
 | `data/ai-referrers.json` | AI assistant hosts and `utm_source` values for counting click-throughs. |
 | `bin/fetch.mjs` | Pulls your zone's data with a read-only token and writes `dashboard/data.json`. Node 18+, no dependencies. |
+| `src/verify.js` | Checks an IP against each vendor's published ranges (CIDR matching, verdicts). Used by `--verify-ips`. |
 | `dashboard/index.html` | A single static page that draws the dashboard from that file. No build, no tracking, no CDN. |
 | `worker/` | Optional Cloudflare Worker: keeps history beyond Cloudflare's retention, counts AI referrals, serves the dashboard. |
 | `dashboard/referral.js` | Optional 1 KB script that reports a visit only when it came from an AI assistant. |
@@ -135,6 +136,48 @@ These rules came from running this on our own sites, where the raw numbers were 
    these numbers. In particular, Cloudflare's "unique visitors" is mostly bots on a site that invites
    crawlers; don't read it as people.
 
+## Spotting fake AI bots
+
+A user agent proves nothing: anyone can type "ChatGPT-User" into a request. Over 30 days on our own
+sites, a scanner wearing 17 different AI-bot user agents fetched `/.env` and similar files. The only
+reliable check is the **IP address**: each vendor publishes the ranges its real bots use, so a read
+from outside them is not that bot.
+
+```bash
+CF_API_TOKEN=... node bin/fetch.mjs --zone example.com --verify-ips      # or VERIFY_IPS = "on" in the Worker
+```
+
+This kit reads Cloudflare's analytics rather than receiving each request, so there is no per-read
+beacon to add an IP to. With `--verify-ips` it asks Cloudflare for the client IP dimension, compares it
+with the vendors' published lists (OpenAI GPTBot / ChatGPT-User / OAI-SearchBot, Anthropic's single list for
+ClaudeBot / Claude-User / Claude-SearchBot, PerplexityBot / Perplexity-User, Googlebot, Bingbot; see
+[`src/verify.js`](src/verify.js)) and keeps **only a verdict count per bot**, never the IP:
+
+| Verdict | Meaning |
+|---|---|
+| `verified` | IP is inside the vendor's published ranges for that bot |
+| `unverified` | We have the ranges and the IP is outside them: forged, or the vendor added a range |
+| `no_ranges` | The vendor publishes a list but we could not load it this run |
+| `no_ip` | No usable IP on the row |
+| `unknown` | The vendor publishes no list for this bot (CCBot, Bytespider, ...), nothing to check |
+
+They appear as `ipVerdicts` on each bot in the data file. Turning it on adds a dimension, so a very
+busy zone uses more of the 10,000-row daily cap (`truncated` still flags it).
+
+If you run your own collector that sees each request (for example a Worker in front of your site that
+POSTs AI reads somewhere), send `cf-connecting-ip` and, on zones that have it, the bot flag, then verify
+server-side with `verdictFor` from `src/verify.js` and store the verdict, not the IP:
+
+```js
+const ip = request.headers.get("cf-connecting-ip") || null;
+const vb = request.cf && request.cf.botManagement && request.cf.botManagement.verifiedBot;
+const cf_verified_bot = typeof vb === "boolean" ? vb : null;
+// body: JSON.stringify({ site, path, ua, ip, cf_verified_bot })
+```
+
+`request.cf.botManagement.verifiedBot` exists **only on Bot Management (Enterprise) zones**; elsewhere it
+is `undefined`, hence the `null`. The IP-range check works on every plan.
+
 ## Limits (read these before quoting a number)
 
 - **Sampled.** Cloudflare's adaptive analytics are sampled estimates. Read small numbers as
@@ -171,7 +214,7 @@ own robots.txt line: blocking `ClaudeBot` does not block `Claude-SearchBot` or `
 ## Privacy
 
 - The fetcher only reads aggregated analytics from your own Cloudflare account. Nothing is sent anywhere
-  else.
+  else except, with `--verify-ips`, a GET of the vendors' public range files. IPs are compared in memory and never stored.
 - The dashboard is a static file with no third-party requests.
 - The referral tracker sends one beacon only for AI-referred visits and stores no personal data.
 
